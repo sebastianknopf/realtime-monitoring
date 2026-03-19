@@ -15,5 +15,5 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: docker-build-push
         run: |
-          docker build -t sebastianknopf/ticktrack:latest .
-          docker push sebastianknopf/ticktrack:latest
+          docker build -t sebastianknopf/realtimeobserver:latest .
+          docker push sebastianknopf/realtimeobserver:latest

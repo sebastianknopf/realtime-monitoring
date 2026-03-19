@@ -5,12 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug: ticktrack",
+            "name": "Debug",
             "type": "debugpy",
             "request": "launch",
-            "module": "ticktrack",
-            "args": ["observe", "./sampledata/ticktrack.db3", "./config/dev.yaml"],
+            "module": "realtimeobserver",
+            "args": ["observe", "./sampledata/realtimeobserver.db3", "./config/dev.yaml"],
             "console": "integratedTerminal",
+            "python": "${workspaceFolder}/venv/Scripts/python.exe",
             "env": {"PYTHONPATH": "${workspaceRoot}/src"}
         }
     ]

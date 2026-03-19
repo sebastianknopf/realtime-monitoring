@@ -208,7 +208,7 @@ pip-selfcheck.json
 
 
 # Project specific
-src/ticktrack/version.py
+src/realtimeobserver/version.py
 config/dev.yaml
 sampledata/*
 datalog/*

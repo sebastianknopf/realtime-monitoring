@@ -1,35 +1,22 @@
-import datetime
 import logging
 import requests
 
-from typing import List
+from datetime import datetime
 
-from ticktrack.datalog import Datalog
-from ticktrack.request import TriasRequest
-from ticktrack.request import StopEventRequest
-from ticktrack.response import TriasResponse
-from ticktrack.response import xml2trias_response
-from ticktrack.model import MonitoredTrip
-from ticktrack.triasxml import exists as triasxml_exists
-from ticktrack.triasxml import get_value as triasxml_get_value
+from realtimeobserver.adapter.base import BaseAdapter
+from realtimeobserver.model import MonitoredTrip
+from realtimeobserver.adapter.vdv431.request import TriasRequest
+from realtimeobserver.adapter.vdv431.request import StopEventRequest
+from realtimeobserver.adapter.vdv431.response import TriasResponse
+from realtimeobserver.adapter.vdv431.response import xml2trias_response
+from realtimeobserver.adapter.vdv431.triasxml import exists as triasxml_exists
+from realtimeobserver.adapter.vdv431.triasxml import get_value as triasxml_get_value
 
-class MonitorWorker:
 
-    def __init__(self, database: str, endpoint: str, key: str, datalog: str|None = None) -> None:
-        self._database = database
-        self._endpoint = endpoint
-        self._key = key
-        self._datalog = datalog
-
-        self.next_departure_timestamp = None
-
-    def start(self, station_id: str, line_ids: List[str]|None = None) -> None:
-        self.next_departure_timestamp = self._run(station_id, line_ids)
-
-    def _run(self, station_id: str, line_ids: List[str]|None = None) -> datetime.datetime|None:
-        
+class VDV431Adapter(BaseAdapter):
+    def process(self, stop_id: str, line_ids: list[str]|None) -> tuple[list[dict], str]:
         # send request
-        request = StopEventRequest(self._key, station_id, self._current_iso_timestamp())
+        request = StopEventRequest(self._token, stop_id, self._current_iso_timestamp())
         response = self._request(request)
 
         # process results
@@ -79,12 +66,12 @@ class MonitorWorker:
                         this_call = stop_event_result.StopEvent.ThisCall
 
                         end_time = triasxml_get_value(this_call, 'CallAtStop.ServiceArrival.TimetabledTime')
-                        end_time = start_time.replace('Z', '+00:00')
+                        end_time = end_time.replace('Z', '+00:00')
                     else:
                         end_time = ""
 
                     # check realtime existence
-                    realtime_ref_station = station_id
+                    realtime_ref_station = stop_id
 
                     if triasxml_exists(stop_event_result, 'StopEvent.ThisCall.CallAtStop.ServiceDeparture.EstimatedTime'):
                         realtime_first_appeared = self._current_iso_timestamp()
@@ -140,12 +127,12 @@ class MonitorWorker:
                     next_departure_timestamp = triasxml_get_value(this_call, 'CallAtStop.ServiceDeparture.TimetabledTime')
                     next_departure_timestamp = next_departure_timestamp.replace('Z', '+00:00')
 
-                    return datetime.datetime.fromisoformat(next_departure_timestamp)
+                    return datetime.fromisoformat(next_departure_timestamp)
                 elif triasxml_exists(this_call, 'CallAtStop.ServiceArrival'):
                     next_departure_timestamp = triasxml_get_value(this_call, 'CallAtStop.ServiceArrival.TimetabledTime')
                     next_departure_timestamp = next_departure_timestamp.replace('Z', '+00:00')
 
-                    return datetime.datetime.fromisoformat(next_departure_timestamp)
+                    return datetime.fromisoformat(next_departure_timestamp)
                 else:
                     return None
             else:
@@ -153,9 +140,6 @@ class MonitorWorker:
         else:
             return None
 
-    def _current_iso_timestamp(self) -> str:
-        return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
-    
     def _get_realtime_metrics(self, stop_event_result: object) -> str:
         realtime_cancelled = 0
         realtime_num_cancelled_stops = 0
@@ -195,27 +179,11 @@ class MonitorWorker:
             'User-Agent': 'ticktrack-worker'
         }
         
-        try:
-            if self._datalog is not None:
-                Datalog.create(self._datalog, request.xml(), {
-                    'method': 'POST',
-                    'endpoint': self._endpoint,
-                    'headers': headers
-                }, 'OUT', type(request).__name__, 'Request')
-            
+        try:            
             response_xml = requests.post(self._endpoint, headers=headers, data=request.xml())
-
-            if self._datalog is not None:
-                Datalog.create(self._datalog, response_xml.content, {
-                    'method': 'POST',
-                    'endpoint': self._endpoint,
-                    'headers': headers
-                }, 'OUT', type(request).__name__, 'Response')
-
             response = xml2trias_response(response_xml.content)
 
             return response
         except Exception as ex:
             logging.error(ex)
-
             return None

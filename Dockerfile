@@ -16,6 +16,6 @@ RUN pip install --no-cache-dir .
 RUN rm -rf .git
 RUN rm -rf .github
 
-# ready - run the stop monitor
+# ready - run the realtime observer
 ENTRYPOINT ["python"]
-CMD ["-m", "ticktrack", "observe", "/app/data/data.db3", "/app/config/config.yaml"]
+CMD ["-m", "realtimeobserver", "observe", "/app/data/data.db3", "/app/config/config.yaml"]

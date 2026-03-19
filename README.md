@@ -1,15 +1,15 @@
-# Ticktrack
-Python client for monitoring and logging of realtime data in passenger information systems using [VDV431](https://github.com/VDVde/TRIAS) interface. 
+# realtimeobserver
+Python client for monitoring and logging of realtime data in passenger information systems using public data interfaces. 
 
 ## Purpose & Usage
-Ticktrack is a simple tool to monitor departures and the availability of realtime data. Each trip detected is logged to a SQLite database which can be used for analyzing problems and behind the generation of realtime data. Following questions can be answered using those data:
+`realtimeobserver` is a simple tool to monitor departures and the availability of realtime data. Each trip detected is logged to a SQLite database which can be used for analyzing problems and behind the generation of realtime data. Following questions can be answered using those data:
 
 - Which lines have a good or less realtime coverage?
 - Are there some trips which have no realtime data available for several days?
 - How is the realtime coverage over some lines in the past 5 days?
 - Are there cancelled trips or single cancelled or added stops?
 
-To collect the data, the ticktrack client performs StopEventRequests periodically for each configured station ID and adds an entry for each unique trip per operation day. 
+To collect the data, the `realtimeobserver` client performs StopEventRequests periodically for each configured station ID and adds an entry for each unique trip per operation day. 
 
 Everythin results in a table with the following structure:
 
@@ -33,38 +33,39 @@ Everythin results in a table with the following structure:
 | realtime_num_added_stops | INTEGER | Realtime No. Added Stops | number of stops in this trip which are added |
 
 ### Installation
-There're different options to use ticktrack. You can use it by cloning this repository and install it into your virtual environment directly:
+There're different options to use realtimeobserver. You can use it by cloning this repository and install it into your virtual environment directly:
 ```
-git clone https://github.com/sebastianknopf/ticktrack.git
-cd ticktrack
+git clone https://github.com/sebastianknopf/realtimeobserver.git
+cd realtimeobserver
 
 pip install .
 ```
 and run it by using
 ```
-python -m ticktrack observe ./data/ticktrack.db3 ./config/your-config.yaml
+python -m realtimeobserver observe ./data/database.db3 ./config/your-config.yaml
 ```
 This is especially good for development. 
 
-If you simply want to run ticktrack on your server, you also can use docker:
+If you simply want to run `realtimeobserver` on your server, you also can use docker:
 ```
 docker run 
     --rm 
     -v ./host/config.yaml:/app/config/config.yaml 
-    -v ./host/ticktrack.db3:/app/data/data.db3
-    sebastianknopf/ticktrack:latest
+    -v ./host/database.db3:/app/data/data.db3
+    sebastianknopf/realtimeobserver:latest
 ```
 Please note, that you're required to mount a configuration file with your specific configuration and a SQLite database file into the docker container to make the application running. 
 
 ## Configuration
-There's a YAML file for configuring the VDV431 interface and the stations and lines which shouled be observed. See [config/default.yaml](config/default.yaml) for reference.
+There's a YAML file for configuring the requested interface endpoint, an optional access token and the URL to a static GTFS feed for obtaining the stations, which need to be queried. See [config/default.yaml](config/default.yaml) for reference.
 
-As ticktrack performs periodic StopEventRequests for each configured station, the number of stations should be as small as possible to match all trips of the lines you want to monitor. This is known as `set-cover` problem in operations research. See [set-cover-gtfs.py]() for finding this minimal set of stations. This becomes the more important than the higher of lines you want to monitor is.
+As `realtimeobserver` performs periodic requests for departure tables to load realtime data of all available trips, the number of stations should be as small as possible to avoid unneccessary network traffic. To achieve this, `realtimeobserver` loads a GTFS static feed to obtain all planned trips and find a minimum set of required to stations to meet each planned trip at least one time.
 
-### Data Logging
-The whole data transfer on the VDV431 interface can be logged to XML files. However, please note that ticktrack may perform several requests per minute depending on your configuration. The total amount of logged data may exceed several GB of data. _Hence, datalogging is meant to be used only for debugging purposes!_
+## Available Interfaces
+Currently, different interfaces are implemented to observe the realtime data presence. See following list:
 
-The logging is implemented as circular logging. That means, log files are available for 24h hours and will then be deleted automatically.
+- `efajson` (adapter name: `efajson`) Using the EFA JSON API provided by several passenger information platforms powered by EFA (Mentz)
+- `vdv431` (adapter name: `vdv431`) Using the VDV431 interface for supplyer-independent data monitoring
 
 ## License
 This project is licensed under the Apache License. See [LICENSE.md](LICENSE.md) for more information.

@@ -1,9 +1,9 @@
 app:
-  endpoint: [YourRemoteServerEndpoint]  # server endpoint of the VDV431 interface
-  api_key: [YourRemoteServerApiKey]     # API key (aka requestor_ref) of the VDV431 interface
-  datalog_enabled: false                # whether requests should be logged or not
-stations:                               # list of station IDs which should be observed
-  - de:08231:11
-lines:                                  # list of line IDs which should be filtered to
-  - de:vpe:04720                        # note: line IDs are compared by the function 'startswith()',
-                                        # that means if a line ID starts with the string here, it will be included
+  adapter:
+    type: efajson
+    endpoint: [YourApiEndpoint]
+    token: [YourApiToken]
+  gtfs: [UrlToGtfsData]
+  lines:
+    - "1"
+    - "2"
