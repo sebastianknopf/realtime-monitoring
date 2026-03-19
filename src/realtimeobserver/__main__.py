@@ -43,15 +43,17 @@ def observe(database, config):
 
     # create station ID index and next departure index
     station_ids: list[str] = list()
+    station_ids_upd_timestamp: datetime|None = None
     station_dep_index = dict()
 
     while True:
         
         # check if station_ids should be updated
-        if len(station_ids) == 0:
+        if len(station_ids) == 0 or (station_ids_upd_timestamp is not None and datetime.now(timezone.utc) - station_ids_upd_timestamp > timedelta(hours=24)):
             logging.info('Updating relevant station IDs ...')
             set_cover_calculator = SetCoverCalculator()
             station_ids = set_cover_calculator.calculate(Configuration.app.gtfs)
+            station_ids_upd_timestamp = datetime.now(timezone.utc)
 
             logging.info(f"Found {len(station_ids)} relevant station IDs: {', '.join(station_ids)}")
 
